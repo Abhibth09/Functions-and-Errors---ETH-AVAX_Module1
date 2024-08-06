@@ -8,55 +8,76 @@ To get started with this project, follow the steps below to set up, deploy, and 
 # Setting up Remix
 Open Remix IDE: Open your web browser and navigate to Remix IDE.
 
-Create a New File: In Remix, create a new file with a .sol extension, for example, OwnershipSupplyExample.sol.
+Create a New File: In Remix, create a new file with a .sol extension, for example, ErrorHandling.sol.
 
 # solidity
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract OwnershipSupplyExample {
-    address public admin;
-    uint256 public supply;
-    mapping(address => uint256) public accountBalances;
+contract ErrorHandling {
+    uint256 public balance;
 
-    event TokensTransferred(address indexed from, address indexed to, uint256 value);
-    event TokensMinted(address indexed to, uint256 value);
-    event TokensBurned(address indexed from, uint256 value);
+    // Event declarations
+    event Deposit(address indexed user, uint256 amount);
+    event Withdrawal(address indexed user, uint256 amount);
+    event ValueChecked(address indexed user, uint256 value, bool valid);
+    event RevertTriggered(string reason);
 
-    constructor() {
-        admin = msg.sender;
+    // Constructor to set the initial balance
+    constructor(uint256 _initialBalance) {
+        balance = _initialBalance;
     }
 
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "Caller is not the admin");
-        _;
+    // Function to deposit funds
+    function deposit(uint256 amount) public {
+        require(amount > 0, "Deposit amount must be greater than zero.");
+        balance += amount;
+        emit Deposit(msg.sender, amount);
     }
 
-    function createTokens(address recipient, uint256 amount) public onlyAdmin {
-        require(recipient != address(0), "Cannot mint to the zero address");
-        supply += amount;
-        accountBalances[recipient] += amount;
-        emit TokensMinted(recipient, amount);
-        emit TokensTransferred(address(0), recipient, amount);
+    // Function to withdraw funds
+    function withdraw(uint256 amount) public {
+        require(amount > 0, "Withdraw amount must be greater than zero.");
+        require(amount <= balance, "Insufficient balance.");
+
+        balance -= amount;
+        emit Withdrawal(msg.sender, amount);
+
+        // Using assert to ensure balance is never negative
+        assert(balance >= 0);
     }
 
-    function destroyTokens(uint256 amount) public onlyAdmin {
-        require(amount <= accountBalances[msg.sender], "Insufficient balance to burn");
-        supply -= amount;
-        accountBalances[msg.sender] -= amount;
-        emit TokensBurned(msg.sender, amount);
-        emit TokensTransferred(msg.sender, address(0), amount);
+    // Function to check a value and potentially revert based on multiple conditions
+    function checkValueAndRevert(uint256 value) public {
+        // Revert if the input value is less than 50
+        if (value < 50) {
+            emit RevertTriggered("Input value must be at least 50.");
+            revert("Input value must be at least 50 to proceed.");
+        }
+        // Revert if the input value is greater than 1000
+        if (value > 1000) {
+            emit RevertTriggered("Input value must not exceed 1000.");
+            revert("Input value must not exceed 1000.");
+        }
+
+        // Emit an event indicating the value was valid
+        emit ValueChecked(msg.sender, value, true);
     }
 
-    function validateInvariant() public view {
-        assert(supply >= 0);
-    }
-
-    function triggerRevert() public pure {
-        revert("This function always reverts");
+    // Function to simulate an unexpected situation
+    function unexpectedCondition() public pure {
+        uint256 a = 1;
+        uint256 b = 2;
+        
+        // Assert is used to check for conditions that should never be false
+        assert(a + b == 3);
+        
+        // This will trigger an assert failure
+        assert(a + b == 4);
     }
 }
+
 
 # Compiling the Contract
 Compile the Contract:
@@ -76,10 +97,10 @@ Interacting with the Deployed Contract:
 After deployment, the contract will appear in the "Deployed Contracts" section. Expand the deployed contract to see the available functions.
 Execute Functions:
 
-createTokens() Function: Input the address to mint tokens to and the amount of tokens to mint. Click the createTokens button.
-destroyTokens() Function: Input the amount of tokens to burn. Click the destroyTokens button.
-validateInvariant() Function: Click the validateInvariant button to assert the total supply is non-negative.
-triggerRevert() Function: Click the triggerRevert button to trigger a revert.
+Deposit() Function:Emitted when a user deposits funds.
+Withdrawl() Function: Emitted when a user withdraws funds.
+ValueChecked() Function: Emitted when a user checks a value and it is valid.
+RevertTriggered() Function: Emitted when a revert is triggered, with the reason for the revert.
 
 # Error Handling Overview
 require(): Used to validate input conditions or contract preconditions. If the condition is not met, it throws an error and reverts the transaction.
